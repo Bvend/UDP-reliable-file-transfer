@@ -9,19 +9,20 @@
 #include <netinet/in.h> 
    
 #define PORT     8080 
-#define MAXLINE 1024 
+#define BUFFER_SIZE 1024 
    
 // Driver code 
 int main() { 
     int sockfd; 
-    char buffer[MAXLINE]; 
-    const char *hello = "Hello from server"; 
+    char buffer[BUFFER_SIZE]; 
+    const char *reply = "Message received by server!"; 
     struct sockaddr_in servaddr, cliaddr; 
        
-    // Creating socket file descriptor 
-    if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
-        perror("socket creation failed"); 
-        exit(EXIT_FAILURE); 
+    // Creating socket file descriptor
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) { 
+        printf("socket creation failed"); 
+        return 1;
     } 
        
     memset(&servaddr, 0, sizeof(servaddr)); 
@@ -33,27 +34,26 @@ int main() {
     servaddr.sin_port = htons(PORT); 
        
     // Bind the socket with the server address 
-    if ( bind(sockfd, (const struct sockaddr *)&servaddr,  
-            sizeof(servaddr)) < 0 ) 
-    { 
-        perror("bind failed"); 
-        exit(EXIT_FAILURE); 
-    } 
+    if (bind(sockfd, (const struct sockaddr *)&servaddr, 
+        sizeof(servaddr)) < 0) { 
+        printf("bind failed"); 
+        close(sockfd);
+        return 1; 
+    }
+
+    printf("Server listening on port %d...\n", PORT);
        
-    socklen_t len;
-  int n; 
-   
-    len = sizeof(cliaddr);  //len is value/result 
-   
-    n = recvfrom(sockfd, (char *)buffer, MAXLINE,  
-                MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
-                &len); 
+    socklen_t len = sizeof(cliaddr);
+    // May use 0 instead of MSG_WAITALL, not sure
+    int n = recvfrom(sockfd, buffer, BUFFER_SIZE, MSG_WAITALL,
+        (struct sockaddr *) &cliaddr, &len); 
+
     buffer[n] = '\0'; 
-    printf("Client : %s\n", buffer); 
-    sendto(sockfd, (const char *)hello, strlen(hello),  
-        MSG_CONFIRM, (const struct sockaddr *) &cliaddr, 
-            len); 
-    std::cout<<"Hello message sent."<<std::endl;  
-       
+    printf("Received from client: %s\n", buffer);
+
+    sendto(sockfd, (const char *)reply, strlen(reply), MSG_CONFIRM, 
+        (const struct sockaddr *) &cliaddr, len); 
+
+    close(sockfd);   
     return 0; 
 }

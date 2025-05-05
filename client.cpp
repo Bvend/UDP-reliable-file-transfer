@@ -8,42 +8,43 @@
 #include <arpa/inet.h> 
 #include <netinet/in.h> 
 
-#define PORT	 8080 
-#define MAXLINE 1024 
+#define SERVER_PORT	 8080 
+#define SERVER_IP "127.0.0.1" // "192.168.18.20"
+#define BUFFER_SIZE 1024 
 
 // Driver code 
 int main() { 
 	int sockfd; 
-	char buffer[MAXLINE]; 
-	const char *hello = "Hello from client"; 
-	struct sockaddr_in	 servaddr; 
+	char buffer[BUFFER_SIZE]; 
+	const char *message = "Hello from client!"; 
+	struct sockaddr_in servaddr; 
 
-	// Creating socket file descriptor 
-	if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
-		perror("socket creation failed"); 
-		exit(EXIT_FAILURE); 
+	// Creating socket file descriptor
+	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sockfd < 0) { 
+		printf("socket creation failed"); 
+		return 1; 
 	} 
 
 	memset(&servaddr, 0, sizeof(servaddr)); 
 	
 	// Filling server information 
 	servaddr.sin_family = AF_INET; 
-	servaddr.sin_port = htons(PORT); 
-	servaddr.sin_addr.s_addr = INADDR_ANY; 
+	servaddr.sin_port = htons(SERVER_PORT); 
+	servaddr.sin_addr.s_addr = inet_addr(SERVER_IP);  
 	
-	int n;
-	socklen_t len; 
-	
-	sendto(sockfd, (const char *)hello, strlen(hello), 
-		MSG_CONFIRM, (const struct sockaddr *) &servaddr, 
-			sizeof(servaddr)); 
-	std::cout<<"Hello message sent."<<std::endl; 
+	// flags coul be MSG_CONFIRM
+	sendto(sockfd, (const char *)message, strlen(message), 0,
+		(const struct sockaddr *) &servaddr, sizeof(servaddr)); 
+	printf("Message sent to server!\n"); 
+
+	socklen_t len = sizeof(servaddr);
 		
-	n = recvfrom(sockfd, (char *)buffer, MAXLINE, 
-				MSG_WAITALL, (struct sockaddr *) &servaddr, 
-				&len); 
+	// flags coul be MSG_WAITALL
+	ssize_t n = recvfrom(sockfd, (char *)buffer, BUFFER_SIZE, 0, 
+		(struct sockaddr *) &servaddr, &len);
 	buffer[n] = '\0'; 
-	std::cout<<"Server :"<<buffer<<std::endl; 
+	printf("Server reply: %s\n", buffer); 
 
 	close(sockfd); 
 	return 0; 
